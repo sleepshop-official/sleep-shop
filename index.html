@@ -4,102 +4,163 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>線上目錄與喊單系統</title>
-  <!-- 引入截圖套件 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #f8f9fa; margin: 0; padding: 15px; color: #333; }
     .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { margin: 10px 0 5px; font-size: 22px; color: #1a1a1a; }
-    .header p { margin: 0; font-size: 14px; color: #666; }
+    .header h1 { margin: 10px 0 5px; font-size: 22px; }
     
+    /* 分類標籤 */
+    .category-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; }
+    .category-btn { background: #e9ecef; border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 14px; }
+    .category-btn.active { background: #4a90e2; color: white; }
+
     /* 商品列表 */
-    .product-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .product-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
     .product-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
-    .product-img { width: 100%; height: 140px; object-fit: cover; background: #eee; }
+    .product-img { width: 100%; height: 150px; object-fit: cover; background: #eee; }
     .product-info { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
     .product-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
-    .product-price { color: #e63946; font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+    .product-price { color: #e63946; font-weight: bold; font-size: 16px; margin-bottom: 8px; }
+    
+    /* 選單樣式 */
+    .option-select { width: 100%; padding: 6px; margin-bottom: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
     .add-btn { background: #4a90e2; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: auto; }
     
-    /* 購物車/結帳區 */
+    /* 結帳明細區 */
     .cart-section { max-width: 500px; margin: 0 auto; }
     .order-card { background: white; padding: 20px; border-radius: 12px; border: 2px dashed #4a90e2; }
     .order-header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
     .order-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
     .qty-controls { display: flex; align-items: center; gap: 8px; }
     .qty-btn { border: 1px solid #ccc; background: #f0f0f0; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; }
-    .order-total { font-size: 18px; font-weight: bold; text-align: right; color: #e63946; border-top: 1px solid #eee; pt: 10px; margin-top: 15px; padding-top: 10px; }
-    
+    .order-total { font-size: 18px; font-weight: bold; text-align: right; color: #e63946; border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; }
     .screenshot-btn { background: #2ec4b6; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <h1>🛍️ 賣家名稱 - 商品目錄</h1>
-    <p>選好商品後，點擊最下方按鈕生成圖片，傳給我即可喊單！</p>
+    <h1>🛍️ 團務喊單目錄</h1>
+    <p>選擇規格與數量後，點擊最下方按鈕生成圖片，截圖傳給我即可！</p>
   </div>
 
-  <!-- 商品展示區（可自由增加） -->
-  <div class="product-list">
-    <div class="product-card">
-      <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=300" class="product-img" alt="手工餅乾">
-      <div class="product-info">
-        <div class="product-title">手工餅乾組</div>
-        <div class="product-price">$150</div>
-        <button class="add-btn" onclick="addToCart('手工餅乾組', 150)">+ 加入清單</button>
-      </div>
-    </div>
+  <!-- 分類篩選按鈕 -->
+  <div id="category-bar" class="category-bar"></div>
 
-    <div class="product-card">
-      <img src="https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=300" class="product-img" alt="特調奶茶">
-      <div class="product-info">
-        <div class="product-title">濃郁特調奶茶</div>
-        <div class="product-price">$60</div>
-        <button class="add-btn" onclick="addToCart('濃郁特調奶茶', 60)">+ 加入清單</button>
-      </div>
-    </div>
+  <!-- 商品列表 -->
+  <div id="product-list" class="product-list">
+    <p style="text-align:center; grid-column: 1/-1;">商品載入中...</p>
   </div>
 
-  <!-- 準備被截圖的區域 -->
+  <!-- 購物清單 -->
   <div class="cart-section">
     <div id="order-card" class="order-card">
       <div class="order-header">
         <h3 style="margin:0;">📝 我的選購清單</h3>
         <span id="order-time" style="font-size: 12px; color: #888;"></span>
       </div>
-      
       <div id="cart-list">
         <p style="text-align: center; color: #aaa; margin: 20px 0;">還沒有選擇商品喔！</p>
       </div>
-
       <div class="order-total">
         總金額：$<span id="total-price">0</span>
       </div>
     </div>
-
     <button class="screenshot-btn" onclick="takeScreenshot()">📸 下載訂單截圖（傳給賣家）</button>
   </div>
 
   <script>
+    // ⚠️ 請把引號裡替換成你 Google 試算表發布的 CSV 網址 ⚠️
+    const SHEET_CSV_URL = "填入你發布的CSV網址";
+
+    let allProducts = [];
     let cart = {};
 
-    function addToCart(name, price) {
-      if (cart[name]) {
-        cart[name].qty += 1;
+    Papa.parse(SHEET_CSV_URL, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        allProducts = results.data.filter(p => p.name && p.price);
+        setupCategories();
+        renderProducts('全部');
+      }
+    });
+
+    function setupCategories() {
+      const categories = ['全部', ...new Set(allProducts.map(p => p.category).filter(Boolean))];
+      const bar = document.getElementById('category-bar');
+      bar.innerHTML = '';
+      categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `category-btn ${cat === '全部' ? 'active' : ''}`;
+        btn.innerText = cat;
+        btn.onclick = () => {
+          document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderProducts(cat);
+        };
+        bar.appendChild(btn);
+      });
+    }
+
+    function renderProducts(filterCategory) {
+      const container = document.getElementById('product-list');
+      container.innerHTML = '';
+
+      const filtered = filterCategory === '全部' 
+        ? allProducts 
+        : allProducts.filter(p => p.category === filterCategory);
+
+      filtered.forEach((item, index) => {
+        const priceNum = Number(item.price);
+        const sizes = item.size ? item.size.split('/') : [];
+        const colors = item.color ? item.color.split('/') : [];
+
+        let sizeHtml = sizes.length ? `<select class="option-select" id="size-${index}">` + sizes.map(s => `<option value="${s.trim()}">${s.trim()}</option>`).join('') + `</select>` : '';
+        let colorHtml = colors.length ? `<select class="option-select" id="color-${index}">` + colors.map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('') + `</select>` : '';
+
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <img src="${item.image || 'https://via.placeholder.com/150'}" class="product-img" alt="${item.name}">
+          <div class="product-info">
+            <div class="product-title">${item.name}</div>
+            <div class="product-price">$${priceNum}</div>
+            ${sizeHtml}
+            ${colorHtml}
+            <button class="add-btn" onclick="addToCartWithSpec(${index})">+ 加入清單</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addToCartWithSpec(index) {
+      const item = allProducts[index];
+      const sizeEl = document.getElementById(`size-${index}`);
+      const colorEl = document.getElementById(`color-${index}`);
+      
+      const selectedSize = sizeEl ? sizeEl.value : '';
+      const selectedColor = colorEl ? colorEl.value : '';
+      
+      let specText = [selectedColor, selectedSize].filter(Boolean).join(' / ');
+      let itemKey = specText ? `${item.name} (${specText})` : item.name;
+
+      if (cart[itemKey]) {
+        cart[itemKey].qty += 1;
       } else {
-        cart[name] = { price: price, qty: 1 };
+        cart[itemKey] = { price: Number(item.price), qty: 1 };
       }
       renderCart();
     }
 
-    function updateQty(name, change) {
-      if (cart[name]) {
-        cart[name].qty += change;
-        if (cart[name].qty <= 0) {
-          delete cart[name];
-        }
+    function updateQty(key, change) {
+      if (cart[key]) {
+        cart[key].qty += change;
+        if (cart[key].qty <= 0) delete cart[key];
       }
       renderCart();
     }
@@ -121,22 +182,21 @@
         return;
       }
 
-      keys.forEach(name => {
-        const item = cart[name];
-        const itemTotal = item.price * item.qty;
-        total += itemTotal;
+      keys.forEach(key => {
+        const item = cart[key];
+        total += item.price * item.qty;
 
         const row = document.createElement('div');
         row.className = 'order-item';
         row.innerHTML = `
           <div>
-            <strong>${name}</strong><br>
+            <strong>${key}</strong><br>
             <span style="color:#888; font-size:12px;">$${item.price} x ${item.qty}</span>
           </div>
           <div class="qty-controls">
-            <button class="qty-btn" onclick="updateQty('${name}', -1)">-</button>
+            <button class="qty-btn" onclick="updateQty('${key}', -1)">-</button>
             <span>${item.qty}</span>
-            <button class="qty-btn" onclick="updateQty('${name}', 1)">+</button>
+            <button class="qty-btn" onclick="updateQty('${key}', 1)">+</button>
           </div>
         `;
         cartList.appendChild(row);
@@ -150,7 +210,6 @@
         alert('請先加入商品再點擊下載截圖喔！');
         return;
       }
-
       const element = document.getElementById('order-card');
       html2canvas(element).then(canvas => {
         const link = document.createElement('a');
