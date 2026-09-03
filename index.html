@@ -77,7 +77,7 @@
     /* Info Area */
     .product-info { padding: 8px 2px 0; display: flex; flex-direction: column; flex-grow: 1; }
     .product-title { font-size: 13px; color: #333; margin-bottom: 4px; line-height: 1.35; font-weight: 600; }
-    
+
     /* 備註改為一行一行呈現 */
     .product-note { font-size: 11px; color: #777; margin-bottom: 6px; line-height: 1.4; }
     .product-note div { margin-bottom: 2px; }
@@ -89,8 +89,8 @@
     .product-price { font-weight: 700; font-size: 14px; color: #444; margin-bottom: 8px; }
 
     /* Selects */
-    .select-group { display: flex; gap: 4px; margin-bottom: 8px; }
-    .option-select { flex: 1; padding: 5px; border: 1px solid #ddd; border-radius: 2px; font-size: 11px; color: #333; background: #fff; outline: none; }
+    .select-group { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .option-select { flex: 1; min-width: 45%; padding: 5px; border: 1px solid #ddd; border-radius: 2px; font-size: 11px; color: #333; background: #fff; outline: none; }
 
     /* Add Cart Button */
     .add-btn { background: var(--btn-blue); color: white; border: none; padding: 9px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; border-radius: 2px; letter-spacing: 0.5px; transition: background 0.2s; margin-top: auto; }
@@ -237,11 +237,25 @@
     let currentCategory = '全部';
     const FALLBACK_IMG = "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400";
 
+    // 通用取得欄位值（兼容中英文欄位標題）
+    function getVal(row, keys) {
+      for (let k of keys) {
+        if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
+          return String(row[k]).trim();
+        }
+      }
+      return '';
+    }
+
     Papa.parse(SHEET_CSV_URL, {
       download: true,
       header: true,
       complete: function(results) {
-        allProducts = results.data.filter(p => p.name || p.price);
+        allProducts = results.data.filter(p => {
+          const name = getVal(p, ['商品名稱', 'name']);
+          const price = getVal(p, ['價格', 'price']);
+          return name || price;
+        });
         setupCategories();
         renderProducts();
       }
@@ -270,7 +284,7 @@
     }
 
     function setupCategories() {
-      const categories = ['全部', ...new Set(allProducts.map(p => p.category).filter(Boolean))];
+      const categories = ['全部', ...new Set(allProducts.map(p => getVal(p, ['分類', 'category'])).filter(Boolean))];
       const listContainer = document.getElementById('category-list');
       listContainer.innerHTML = '';
 
@@ -304,6 +318,11 @@
       return cleanUrl;
     }
 
+    function parseOptions(val) {
+      if (!val) return [];
+      return val.split(/[/;,]/).map(s => s.trim()).filter(Boolean);
+    }
+
     function renderProducts() {
       const container = document.getElementById('product-list');
       const searchKey = document.getElementById('search-input').value.toLowerCase().trim();
@@ -312,14 +331,15 @@
       let filtered = allProducts;
 
       if (currentCategory !== '全部') {
-        filtered = filtered.filter(p => p.category === currentCategory);
+        filtered = filtered.filter(p => getVal(p, ['分類', 'category']) === currentCategory);
       }
 
       if (searchKey) {
-        filtered = filtered.filter(p => 
-          (p.name && p.name.toLowerCase().includes(searchKey)) ||
-          (p.note && p.note.toLowerCase().includes(searchKey))
-        );
+        filtered = filtered.filter(p => {
+          const name = getVal(p, ['商品名稱', 'name']);
+          const note = getVal(p, ['備註', 'note']);
+          return name.toLowerCase().includes(searchKey) || note.toLowerCase().includes(searchKey);
+        });
       }
 
       if (filtered.length === 0) {
@@ -328,11 +348,20 @@
       }
 
       filtered.forEach((item, index) => {
-        const priceNum = Number(item.price) || 0;
-        const sizes = item.size ? item.size.split('/') : [];
-        const colors = item.color ? item.color.split('/') : [];
-        
-        let rawImages = item.image ? item.image.split(',') : [];
+        const nameStr = getVal(item, ['商品名稱', 'name']) || '商品';
+        const priceNum = Number(getVal(item, ['價格', 'price'])) || 0;
+        const noteStr = getVal(item, ['備註', 'note']);
+        const chartStr = getVal(item, ['尺寸表', 'chart']);
+        const imgStr = getVal(item, ['圖片', 'image']);
+
+        // 解析規格選單
+        const colors = parseOptions(getVal(item, ['顏色', 'color']));
+        const sizes = parseOptions(getVal(item, ['尺寸', 'size']));
+        const styles = parseOptions(parseOptions(getVal(item, ['款式']))[0] ? getVal(item, ['款式']) : '');
+        const models = parseOptions(parseOptions(getVal(item, ['型號']))[0] ? getVal(item, ['型號']) : '');
+
+        // 圖片拆分
+        let rawImages = imgStr ? imgStr.split(/[\n,;]/).filter(Boolean) : [];
         let images = rawImages.map(fixImgUrl);
         if (images.length === 0) images = [FALLBACK_IMG];
 
@@ -343,20 +372,23 @@
             `</div>`;
         }
 
-        let sizeHtml = sizes.length ? `<select class="option-select" id="size-${index}"><option value="">尺寸</option>` + sizes.map(s => `<option value="${s.trim()}">${s.trim()}</option>`).join('') + `</select>` : '';
-        let colorHtml = colors.length ? `<select class="option-select" id="color-${index}"><option value="">款式</option>` + colors.map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('') + `</select>` : '';
+        // 動態產生選單
+        let colorHtml = colors.length ? `<select class="option-select spec-select-${index}" data-spec-name="顏色"><option value="">顏色</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('') + `</select>` : '';
+        let sizeHtml = sizes.length ? `<select class="option-select spec-select-${index}" data-spec-name="尺寸"><option value="">尺寸</option>` + sizes.map(s => `<option value="${s}">${s}</option>`).join('') + `</select>` : '';
+        let styleHtml = styles.length ? `<select class="option-select spec-select-${index}" data-spec-name="款式"><option value="">款式</option>` + styles.map(st => `<option value="${st}">${st}</option>`).join('') + `</select>` : '';
+        let modelHtml = models.length ? `<select class="option-select spec-select-${index}" data-spec-name="型號"><option value="">型號</option>` + models.map(m => `<option value="${m}">${m}</option>`).join('') + `</select>` : '';
 
-        // 處理備註：用 / 或 | 切分成一行一行
+        // 處理備註
         let noteHtml = '';
-        if (item.note) {
-          const lines = item.note.split(/[/|]/);
+        if (noteStr) {
+          const lines = noteStr.split(/[/|]/);
           noteHtml = `<div class="product-note">` + lines.map(line => `<div>${line.trim()}</div>`).join('') + `</div>`;
         }
 
         // 處理尺寸表按鈕
         let chartHtml = '';
-        if (item.chart && item.chart.trim()) {
-          const chartImg = fixImgUrl(item.chart.trim());
+        if (chartStr) {
+          const chartImg = fixImgUrl(chartStr);
           chartHtml = `<div class="chart-btn" onclick="openModal('${chartImg}')">📐 查看尺寸表</div>`;
         }
 
@@ -371,13 +403,15 @@
           </div>
           ${thumbsHtml}
           <div class="product-info">
-            <div class="product-title">${item.name || '商品'}</div>
+            <div class="product-title">${nameStr}</div>
             ${noteHtml}
             ${chartHtml}
             <div class="product-price">NT$${priceNum}</div>
             <div class="select-group">
               ${colorHtml}
               ${sizeHtml}
+              ${styleHtml}
+              ${modelHtml}
             </div>
             <button class="add-btn" onclick="addToCartWithSpec(${index})">加入購物車</button>
           </div>
@@ -401,32 +435,28 @@
 
     function addToCartWithSpec(index) {
       const item = allProducts[index];
-      const sizeEl = document.getElementById(`size-${index}`);
-      const colorEl = document.getElementById(`color-${index}`);
+      const specSelects = document.querySelectorAll(`.spec-select-${index}`);
       
-      const sizes = item.size ? item.size.split('/') : [];
-      const colors = item.color ? item.color.split('/') : [];
+      let selectedSpecs = [];
 
-      if (colors.length > 0 && colorEl && !colorEl.value) {
-        alert('請先選擇款式喔！');
-        return;
-      }
-      if (sizes.length > 0 && sizeEl && !sizeEl.value) {
-        alert('請先選擇尺寸喔！');
-        return;
+      for (let select of specSelects) {
+        if (!select.value) {
+          const specName = select.getAttribute('data-spec-name') || '規格';
+          alert(`請先選擇${specName}喔！`);
+          return;
+        }
+        selectedSpecs.push(select.value);
       }
 
-      const selectedSize = sizeEl ? sizeEl.value : '';
-      const selectedColor = colorEl ? colorEl.value : '';
-      
-      let specText = [selectedColor, selectedSize].filter(Boolean).join(' / ');
-      let nameText = item.name || '商品';
+      let specText = selectedSpecs.join(' / ');
+      let nameText = getVal(item, ['商品名稱', 'name']) || '商品';
+      let priceNum = Number(getVal(item, ['價格', 'price'])) || 0;
       let itemKey = specText ? `${nameText} (${specText})` : nameText;
 
       if (cart[itemKey]) {
         cart[itemKey].qty += 1;
       } else {
-        cart[itemKey] = { price: Number(item.price) || 0, qty: 1, name: nameText, spec: specText };
+        cart[itemKey] = { price: priceNum, qty: 1, name: nameText, spec: specText };
       }
       renderCart();
     }
