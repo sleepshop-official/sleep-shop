@@ -76,8 +76,16 @@
 
     /* Info Area */
     .product-info { padding: 8px 2px 0; display: flex; flex-direction: column; flex-grow: 1; }
-    .product-title { font-size: 13px; color: #333; margin-bottom: 2px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 35px; }
-    .product-note { font-size: 11px; color: #888; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .product-title { font-size: 13px; color: #333; margin-bottom: 4px; line-height: 1.35; font-weight: 600; }
+    
+    /* 備註改為一行一行呈現 */
+    .product-note { font-size: 11px; color: #777; margin-bottom: 6px; line-height: 1.4; }
+    .product-note div { margin-bottom: 2px; }
+
+    /* 尺寸表按鈕 */
+    .chart-btn { font-size: 11px; color: #555; background: #f0f0f0; border: 1px solid #ddd; padding: 3px 6px; border-radius: 3px; cursor: pointer; display: inline-block; margin-bottom: 6px; width: fit-content; }
+    .chart-btn:hover { background: #e5e5e5; color: #000; }
+
     .product-price { font-weight: 700; font-size: 14px; color: #444; margin-bottom: 8px; }
 
     /* Selects */
@@ -167,17 +175,17 @@
       <div class="guide-box">
         <h4>🛍️ 如何選購與喊單</h4>
         <ol>
-          <li>瀏覽目錄商品，選擇欲購買的款式與尺寸。</li>
+          <li>瀏覽目錄商品，選擇欲購買的顏色與尺寸。</li>
           <li>點擊「加入購物車」將商品加入選購清單。</li>
           <li>點擊右上角購物車圖示 🛒，確認選購的商品與數量。</li>
-          <li>點擊下方「📸 生成訂單明細傳給賣家」按鈕下載清單截圖。</li>
+          <li>點擊下方「📸 生成訂單截圖傳給賣家」按鈕下載清單截圖。</li>
           <li>將截圖私訊傳給賣家即可完成喊單！</li>
         </ol>
 
         <h4>⚠️ 喊單須知與注意事項</h4>
         <ul>
           <li>下單未滿200元須收取包材與手續費12元</li>
-          <li>下單前請務必確認尺寸與款式，下單後無法隨意修改。</li>
+          <li>下單前請務確認尺寸與顏色，下單後無法隨意修改。</li>
           <li>預購商品到貨時間約1-2個月，不接急單。</li>
           <li>商品因拍攝光線及螢幕顯示不同，可能有些微色差。</li>
           <li>若商品有問題，請24小時內帶開箱影片告知，缺一不受理。</li>
@@ -205,7 +213,7 @@
           總金額：NT$<span id="total-price">0</span>
         </div>
       </div>
-      <button class="screenshot-btn" onclick="takeScreenshot()">📸 生成訂單明細傳給賣家</button>
+      <button class="screenshot-btn" onclick="takeScreenshot()">📸 生成訂單截圖傳給賣家</button>
     </div>
   </div>
 
@@ -252,7 +260,7 @@
     function toggleGuideModal(open) {
       document.getElementById('guide-modal').classList.toggle('active', open);
       document.getElementById('modal-overlay').classList.toggle('active', open);
-      if (open) toggleDrawer(false); // 自動關閉側邊欄以利瀏覽指南
+      if (open) toggleDrawer(false);
     }
 
     function closeAllModals() {
@@ -336,9 +344,22 @@
         }
 
         let sizeHtml = sizes.length ? `<select class="option-select" id="size-${index}"><option value="">尺寸</option>` + sizes.map(s => `<option value="${s.trim()}">${s.trim()}</option>`).join('') + `</select>` : '';
-        let colorHtml = colors.length ? `<select class="option-select" id="color-${index}"><option value="">款式</option>` + colors.map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('') + `</select>` : '';
+        let colorHtml = colors.length ? `<select class="option-select" id="color-${index}"><option value="">款式/顏色</option>` + colors.map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('') + `</select>` : '';
 
-        const noteHtml = item.note ? `<div class="product-note">${item.note}</div>` : '';
+        // 處理備註：用 / 或 | 切分成一行一行
+        let noteHtml = '';
+        if (item.note) {
+          const lines = item.note.split(/[/|]/);
+          noteHtml = `<div class="product-note">` + lines.map(line => `<div>${line.trim()}</div>`).join('') + `</div>`;
+        }
+
+        // 處理尺寸表按鈕
+        let chartHtml = '';
+        if (item.chart && item.chart.trim()) {
+          const chartImg = fixImgUrl(item.chart.trim());
+          chartHtml = `<div class="chart-btn" onclick="openModal('${chartImg}')">📐 查看尺寸表</div>`;
+        }
+
         const badgeCount = images.length > 1 ? `<div class="badge-count">1/${images.length}</div>` : '';
 
         const card = document.createElement('div');
@@ -352,6 +373,7 @@
           <div class="product-info">
             <div class="product-title">${item.name || '商品'}</div>
             ${noteHtml}
+            ${chartHtml}
             <div class="product-price">NT$${priceNum}</div>
             <div class="select-group">
               ${colorHtml}
@@ -386,7 +408,7 @@
       const colors = item.color ? item.color.split('/') : [];
 
       if (colors.length > 0 && colorEl && !colorEl.value) {
-        alert('請先選擇款式喔！');
+        alert('請先選擇款式/顏色喔！');
         return;
       }
       if (sizes.length > 0 && sizeEl && !sizeEl.value) {
