@@ -66,7 +66,7 @@
       position: relative; 
       width: 100%; 
       aspect-ratio: 3 / 4; 
-      background: #f8f8f8; /* 加上微灰底色，讓非滿版圖片過渡更自然 */
+      background: #f8f8f8;
       overflow: hidden; 
       cursor: pointer; 
       display: flex;
@@ -76,8 +76,8 @@
     .product-img { 
       width: 100%; 
       height: 100%; 
-      object-fit: contain; /* 改為 contain：完整顯示不裁切 */
-      padding: 4px; /* 留一點點微小邊距，防止圖片貼邊 */
+      object-fit: contain;
+      padding: 4px;
       transition: transform 0.3s ease; 
     }
     .product-card:hover .product-img { transform: scale(1.02); }
@@ -94,11 +94,9 @@
     .product-info { padding: 8px 2px 0; display: flex; flex-direction: column; flex-grow: 1; }
     .product-title { font-size: 13px; color: #333; margin-bottom: 4px; line-height: 1.35; font-weight: 600; }
 
-    /* 備註改為一行一行呈現 */
     .product-note { font-size: 11px; color: #777; margin-bottom: 6px; line-height: 1.4; }
     .product-note div { margin-bottom: 2px; }
 
-    /* 尺寸表按鈕 */
     .chart-btn { font-size: 11px; color: #555; background: #f0f0f0; border: 1px solid #ddd; padding: 3px 6px; border-radius: 3px; cursor: pointer; display: inline-block; margin-bottom: 6px; width: fit-content; }
     .chart-btn:hover { background: #e5e5e5; color: #000; }
 
@@ -130,6 +128,13 @@
     .order-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
     .order-header h4 { margin: 0 0 6px; font-size: 15px; color: #000; }
     .order-header p { margin: 0; font-size: 12px; color: #333333; font-weight: 600; }
+
+    /* 客戶資料輸入區塊 */
+    .customer-info-section { border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 12px; }
+    .customer-input-group { margin-bottom: 8px; display: flex; align-items: center; }
+    .customer-input-group label { width: 90px; font-size: 12px; font-weight: 600; color: #333; }
+    .customer-input-group input { flex: 1; padding: 6px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
+    .customer-input-group input:focus { border-color: #333; }
 
     .order-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px; }
     .qty-controls { display: flex; align-items: center; gap: 6px; }
@@ -193,7 +198,7 @@
         <ol>
           <li>瀏覽目錄商品，選擇欲購買的款式與尺寸。</li>
           <li>點擊「加入購物車」將商品加入選購清單。</li>
-          <li>點擊右上角購物車圖示 🛒，確認選購的商品與數量。</li>
+          <li>點擊右上角購物車圖示 🛒，確認商品並填寫收件資料。</li>
           <li>點擊下方「📸 生成訂單明細傳給賣家」按鈕下載清單截圖。</li>
           <li>將截圖私訊傳給賣家即可完成喊單！</li>
         </ol>
@@ -222,6 +227,23 @@
           <h4>🛒 SLEEP SHOP 訂單</h4>
           <p id="order-time">----/--/-- --:--</p>
         </div>
+
+        <!-- 客戶寄件資料填寫區 -->
+        <div class="customer-info-section">
+          <div class="customer-input-group">
+            <label for="cust-name">姓名：</label>
+            <input type="text" id="cust-name" placeholder="請輸入收件人姓名">
+          </div>
+          <div class="customer-input-group">
+            <label for="cust-phone">電話：</label>
+            <input type="tel" id="cust-phone" placeholder="請輸入手機號碼">
+          </div>
+          <div class="customer-input-group">
+            <label for="cust-store">取貨門市：</label>
+            <input type="text" id="cust-store" placeholder="請輸入 7-11 / 全家 門市名稱">
+          </div>
+        </div>
+
         <div id="cart-list">
           <p style="text-align: center; color: #aaa; margin: 20px 0; font-size: 12px;">還沒有選擇商品喔！</p>
         </div>
@@ -253,7 +275,6 @@
     let currentCategory = '全部';
     const FALLBACK_IMG = "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400";
 
-    // 通用取得欄位值（兼容中英文欄位標題）
     function getVal(row, keys) {
       for (let k of keys) {
         if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
@@ -370,13 +391,11 @@
         const chartStr = getVal(item, ['尺寸表', 'chart']);
         const imgStr = getVal(item, ['圖片', 'image']);
 
-        // 解析規格選單
         const colors = parseOptions(getVal(item, ['顏色', 'color']));
         const sizes = parseOptions(getVal(item, ['尺寸', 'size']));
         const styles = parseOptions(parseOptions(getVal(item, ['款式']))[0] ? getVal(item, ['款式']) : '');
         const models = parseOptions(parseOptions(getVal(item, ['型號']))[0] ? getVal(item, ['型號']) : '');
 
-        // 圖片拆分
         let rawImages = imgStr ? imgStr.split(/[\n,;]/).filter(Boolean) : [];
         let images = rawImages.map(fixImgUrl);
         if (images.length === 0) images = [FALLBACK_IMG];
@@ -388,20 +407,17 @@
             `</div>`;
         }
 
-        // 動態產生選單
         let colorHtml = colors.length ? `<select class="option-select spec-select-${index}" data-spec-name="顏色"><option value="">顏色</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('') + `</select>` : '';
         let sizeHtml = sizes.length ? `<select class="option-select spec-select-${index}" data-spec-name="尺寸"><option value="">尺寸</option>` + sizes.map(s => `<option value="${s}">${s}</option>`).join('') + `</select>` : '';
         let styleHtml = styles.length ? `<select class="option-select spec-select-${index}" data-spec-name="款式"><option value="">款式</option>` + styles.map(st => `<option value="${st}">${st}</option>`).join('') + `</select>` : '';
         let modelHtml = models.length ? `<select class="option-select spec-select-${index}" data-spec-name="型號"><option value="">型號</option>` + models.map(m => `<option value="${m}">${m}</option>`).join('') + `</select>` : '';
 
-        // 處理備註
         let noteHtml = '';
         if (noteStr) {
           const lines = noteStr.split(/[/|]/);
           noteHtml = `<div class="product-note">` + lines.map(line => `<div>${line.trim()}</div>`).join('') + `</div>`;
         }
 
-        // 處理尺寸表按鈕
         let chartHtml = '';
         if (chartStr) {
           const chartImg = fixImgUrl(chartStr);
@@ -506,7 +522,6 @@
         return;
       }
 
-      // 計算商品小計與數量
       keys.forEach(key => {
         const item = cart[key];
         subtotal += item.price * item.qty;
@@ -529,13 +544,12 @@
         cartList.appendChild(row);
       });
 
-      // 判斷是否未滿 200 元並加上 12 元手續費
       let shippingFee = 0;
       if (subtotal > 0 && subtotal < 200) {
         shippingFee = 12;
         const feeRow = document.createElement('div');
         feeRow.className = 'order-item';
-        feeRow.style.color = '#d90429'; // 提示紅字
+        feeRow.style.color = '#d90429';
         feeRow.style.borderTop = '1px dashed #eee';
         feeRow.style.paddingTop = '6px';
         feeRow.innerHTML = `
@@ -560,6 +574,17 @@
         alert('請先選擇商品再生成截圖喔！');
         return;
       }
+
+      // 檢查顧客收件資料必填欄位
+      const name = document.getElementById('cust-name').value.trim();
+      const phone = document.getElementById('cust-phone').value.trim();
+      const store = document.getElementById('cust-store').value.trim();
+
+      if (!name || !phone || !store) {
+        alert('請填寫完整的收件姓名、電話與取貨門市喔！');
+        return;
+      }
+
       const element = document.getElementById('order-card');
       html2canvas(element, { scale: 2 }).then(canvas => {
         const link = document.createElement('a');
