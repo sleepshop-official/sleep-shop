@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SELECTED ONLINE SHOP</title>
+  <title>SLEEP SHOP</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
@@ -20,19 +20,20 @@
     }
 
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background-color: var(--bg); margin: 0; padding: 0; color: var(--text-main); line-height: 1.4; padding-bottom: 60px; }
+    body { background-color: var(--bg); margin: 0; padding: 0; color: var(--text-main); line-height: 1.4; }
 
     /* Top Navigation Bar */
-    .top-bar { position: sticky; top: 0; z-index: 90; background: #ffffff; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+    .top-bar { position: sticky; top: 0; z-index: 90; background: #ffffff; display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
     .icon-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--primary); padding: 0; display: flex; align-items: center; }
-    .brand-logo { font-size: 18px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); }
+    .brand-logo { font-size: 20px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--primary); }
     .cart-btn-wrapper { position: relative; cursor: pointer; }
     .cart-badge { position: absolute; top: -5px; right: -8px; background: var(--red-tag); color: white; font-size: 10px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
 
+    /* Common Overlay */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+
     /* Left Drawer / Sidebar Navigation */
-    .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
-    .drawer-overlay.active { opacity: 1; visibility: visible; }
-    
     .drawer { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #ffffff; z-index: 1001; transition: left 0.3s ease; display: flex; flex-direction: column; padding: 20px; box-shadow: 5px 0 25px rgba(0,0,0,0.1); }
     .drawer.active { left: 0; }
     
@@ -40,27 +41,27 @@
     .drawer-title { font-size: 16px; font-weight: 700; letter-spacing: 1px; }
 
     /* Search Box in Sidebar */
-    .search-box { display: flex; align-items: center; background: #f2f2f2; border-radius: 6px; padding: 8px 12px; margin-bottom: 20px; }
+    .search-box { display: flex; align-items: center; background: #f2f2f2; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
     .search-box input { border: none; background: transparent; width: 100%; outline: none; font-size: 13px; margin-left: 8px; color: var(--text-main); }
 
+    /* Guide Menu Link */
+    .guide-btn { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px 12px; border-radius: 6px; border: 1px solid #eee; font-size: 13px; font-weight: 600; color: #333; cursor: pointer; margin-bottom: 15px; transition: background 0.2s; }
+    .guide-btn:hover { background: #f0f0f0; }
+
+    .category-section-title { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-left: 4px; }
     .category-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
     .category-item { padding: 12px 10px; font-size: 14px; font-weight: 500; border-bottom: 1px solid #f8f8f8; cursor: pointer; display: flex; justify-content: space-between; color: #444; }
     .category-item:hover, .category-item.active { color: var(--primary); font-weight: 700; background: #fafafa; }
 
-    /* Banner Announcement */
-    .announcement { background: #fdfdfd; text-align: center; padding: 8px 15px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid #f0f0f0; }
-
     /* Main Container & Product Grid */
-    .container { max-width: 1000px; margin: 0 auto; padding: 15px; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
     .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px 12px; }
     @media (min-width: 768px) {
       .product-grid { grid-template-columns: repeat(3, 1fr); gap: 25px 20px; }
     }
 
-    /* Product Card 50% Style */
+    /* Product Card */
     .product-card { background: #ffffff; display: flex; flex-direction: column; position: relative; }
-    
-    /* Image Area */
     .img-container { position: relative; width: 100%; aspect-ratio: 3 / 4; background: var(--card-bg); overflow: hidden; cursor: pointer; }
     .product-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
     .product-card:hover .product-img { transform: scale(1.02); }
@@ -87,21 +88,33 @@
     .add-btn { background: var(--btn-blue); color: white; border: none; padding: 9px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; border-radius: 2px; letter-spacing: 0.5px; transition: background 0.2s; margin-top: auto; }
     .add-btn:hover { background: var(--btn-blue-hover); }
 
-    /* Receipt Style Cart Card */
-    .cart-section { max-width: 480px; margin: 40px auto 20px; padding: 0 15px; }
-    .order-card { background: #fbfbfb; padding: 20px; border: 1px solid #e0e0e0; position: relative; border-radius: 4px; }
-    .order-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 12px; margin-bottom: 12px; }
-    .order-header h3 { margin: 0 0 4px; font-size: 16px; letter-spacing: 1px; }
+    /* Generic Popup Modal */
+    .popup-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 440px; max-height: 85vh; background: #ffffff; z-index: 1001; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+    .popup-modal.active { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
+    
+    .popup-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+    .popup-modal-title { font-size: 16px; font-weight: 700; }
+    .popup-modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; font-size: 13px; line-height: 1.6; color: #444; }
+
+    .guide-box h4 { margin: 15px 0 6px 0; font-size: 14px; color: #000; }
+    .guide-box h4:first-child { margin-top: 0; }
+    .guide-box ol, .guide-box ul { padding-left: 18px; margin: 0 0 10px 0; }
+    .guide-box li { margin-bottom: 6px; }
+
+    /* Order Receipt Style */
+    .order-card { background: #fbfbfb; padding: 18px; border: 1px solid #e0e0e0; border-radius: 4px; }
+    .order-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
+    .order-header h4 { margin: 0 0 4px; font-size: 15px; }
     .order-header p { margin: 0; font-size: 11px; color: #888; }
 
     .order-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px; }
     .qty-controls { display: flex; align-items: center; gap: 6px; }
     .qty-btn { border: 1px solid #ccc; background: #fff; width: 22px; height: 22px; cursor: pointer; font-size: 12px; }
 
-    .order-total { font-size: 16px; font-weight: 700; text-align: right; color: var(--red-tag); border-top: 1px dashed #ccc; margin-top: 12px; padding-top: 10px; }
+    .order-total { font-size: 16px; font-weight: 700; text-align: right; color: var(--red-tag); border-top: 1px dashed #ccc; margin-top: 10px; padding-top: 8px; }
     .screenshot-btn { background: #222222; color: white; border: none; padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; letter-spacing: 1px; }
 
-    /* Image Modal Preview */
+    /* Image Preview Modal */
     .modal { display: none; position: fixed; z-index: 2000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; }
     .modal img { max-width: 90%; max-height: 85%; }
   </style>
@@ -111,20 +124,20 @@
   <!-- Top Header Navigation Bar -->
   <div class="top-bar">
     <button class="icon-btn" onclick="toggleDrawer(true)">☰</button>
-    <div class="brand-logo">SELECT CATALOG</div>
-    <div class="cart-btn-wrapper" onclick="scrollToCart()">
+    <div class="brand-logo">SLEEP SHOP</div>
+    <div class="cart-btn-wrapper" onclick="toggleCartModal(true)">
       <button class="icon-btn">🛒</button>
       <div id="cart-badge" class="cart-badge" style="display:none;">0</div>
     </div>
   </div>
 
-  <div class="announcement">✨預購商品✨請記得下載訂單明細跟版主喊單</div>
+  <!-- Unified Dark Overlay -->
+  <div id="modal-overlay" class="modal-overlay" onclick="closeAllModals()"></div>
 
   <!-- Left Side Drawer Navigation -->
-  <div id="drawer-overlay" class="drawer-overlay" onclick="toggleDrawer(false)"></div>
   <div id="drawer" class="drawer">
     <div class="drawer-header">
-      <div class="drawer-title">商品選單</div>
+      <div class="drawer-title">選單</div>
       <button class="icon-btn" onclick="toggleDrawer(false)">✕</button>
     </div>
 
@@ -133,9 +146,67 @@
       🔍 <input type="text" id="search-input" placeholder="搜尋商品關鍵字..." oninput="handleSearch()">
     </div>
 
+    <!-- Guide Link Button -->
+    <div class="guide-btn" onclick="toggleGuideModal(true)">
+      📖 使用指南與喊單須知 <span>›</span>
+    </div>
+
+    <div class="category-section-title">商品分類</div>
     <ul id="category-list" class="category-list">
       <!-- Categories rendered by JS -->
     </ul>
+  </div>
+
+  <!-- Guide Modal -->
+  <div id="guide-modal" class="popup-modal">
+    <div class="popup-modal-header">
+      <div class="popup-modal-title">📖 使用指南與喊單須知</div>
+      <button class="icon-btn" onclick="toggleGuideModal(false)">✕</button>
+    </div>
+    <div class="popup-modal-body">
+      <div class="guide-box">
+        <h4>🛍️ 如何選購與喊單</h4>
+        <ol>
+          <li>瀏覽目錄商品，選擇欲購買的顏色與尺寸。</li>
+          <li>點擊「加入購物車」將商品加入選購清單。</li>
+          <li>點擊右上角購物車圖示 🛒，確認選購的商品與數量。</li>
+          <li>點擊下方「📸 生成訂單截圖傳給賣家」按鈕下載清單截圖。</li>
+          <li>將截圖私訊傳給賣家即可完成喊單！</li>
+        </ol>
+
+        <h4>⚠️ 喊單須知與注意事項</h4>
+        <ul>
+          <li>下單前請務確認尺寸與顏色，下單後無法隨意修改。</li>
+          <li>預購商品到貨時間約 7-14 個工作天，不接急單。</li>
+          <li>商品因拍攝光線及螢幕顯示不同，可能有些微色差。</li>
+          <li>如有任何問題，請隨時私訊客服為您處理。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shopping Cart Popup Modal -->
+  <div id="cart-modal" class="popup-modal">
+    <div class="popup-modal-header">
+      <div class="popup-modal-title">我的選購清單</div>
+      <button class="icon-btn" onclick="toggleCartModal(false)">✕</button>
+    </div>
+    <div class="popup-modal-body">
+      <div id="order-card" class="order-card">
+        <div class="order-header">
+          <h4>🛒 SLEEP SHOP 訂單</h4>
+          <p id="order-id">ORDER ID: #---</p>
+          <p id="order-time">----/--/-- --:--</p>
+        </div>
+        <div id="cart-list">
+          <p style="text-align: center; color: #aaa; margin: 20px 0; font-size: 12px;">還沒有選擇商品喔！</p>
+        </div>
+        <div class="order-total">
+          總金額：NT$<span id="total-price">0</span>
+        </div>
+      </div>
+      <button class="screenshot-btn" onclick="takeScreenshot()">📸 生成訂單截圖傳給賣家</button>
+    </div>
   </div>
 
   <!-- Main Product List -->
@@ -145,31 +216,13 @@
     </div>
   </div>
 
-  <!-- Cart / Receipt Section -->
-  <div class="cart-section" id="cart-section">
-    <div id="order-card" class="order-card">
-      <div class="order-header">
-        <h3>🛒 我的選購清單</h3>
-        <p id="order-id">ORDER ID: #---</p>
-        <p id="order-time">----/--/-- --:--</p>
-      </div>
-      <div id="cart-list">
-        <p style="text-align: center; color: #aaa; margin: 20px 0; font-size: 12px;">還沒有選擇商品喔！</p>
-      </div>
-      <div class="order-total">
-        總金額：NT$<span id="total-price">0</span>
-      </div>
-    </div>
-    <button class="screenshot-btn" onclick="takeScreenshot()">📸 生成訂單截圖傳給賣家</button>
-  </div>
-
   <!-- Image Preview Modal -->
   <div id="img-modal" class="modal" onclick="this.style.display='none'">
     <img id="modal-img" src="">
   </div>
 
   <script>
-    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeVbV5Fh_iuHNmEQdeDfD07H_VXOF-_siv4p4hivU_r2bTH8Q9ZA4SHP8jWAe7vcBLZKIQBIn2u27u/pub?output=csv";
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeVbV5Fh_iuHnmEQdeDfD07H_VX0F-_siv4p4hivU_r2bTH8Q9ZA4SHP8jWAe7vcBLZKlQBIn2u27u/pub?output=csv";
 
     let allProducts = [];
     let cart = {};
@@ -188,7 +241,24 @@
 
     function toggleDrawer(open) {
       document.getElementById('drawer').classList.toggle('active', open);
-      document.getElementById('drawer-overlay').classList.toggle('active', open);
+      document.getElementById('modal-overlay').classList.toggle('active', open);
+    }
+
+    function toggleCartModal(open) {
+      document.getElementById('cart-modal').classList.toggle('active', open);
+      document.getElementById('modal-overlay').classList.toggle('active', open);
+    }
+
+    function toggleGuideModal(open) {
+      document.getElementById('guide-modal').classList.toggle('active', open);
+      document.getElementById('modal-overlay').classList.toggle('active', open);
+      if (open) toggleDrawer(false); // 自動關閉側邊欄以利瀏覽指南
+    }
+
+    function closeAllModals() {
+      toggleDrawer(false);
+      toggleCartModal(false);
+      toggleGuideModal(false);
     }
 
     function setupCategories() {
@@ -204,7 +274,7 @@
           currentCategory = cat;
           document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
           li.classList.add('active');
-          document.getElementById('search-input').value = ''; // clear search
+          document.getElementById('search-input').value = ''; 
           renderProducts();
           toggleDrawer(false);
         };
@@ -233,12 +303,10 @@
 
       let filtered = allProducts;
 
-      // 1. Filter by Category
       if (currentCategory !== '全部') {
         filtered = filtered.filter(p => p.category === currentCategory);
       }
 
-      // 2. Filter by Search Keyword
       if (searchKey) {
         filtered = filtered.filter(p => 
           (p.name && p.name.toLowerCase().includes(searchKey)) ||
@@ -404,10 +472,6 @@
       cartBadge.style.display = 'flex';
     }
 
-    function scrollToCart() {
-      document.getElementById('cart-section').scrollIntoView({ behavior: 'smooth' });
-    }
-
     function takeScreenshot() {
       if (Object.keys(cart).length === 0) {
         alert('請先選擇商品再生成截圖喔！');
@@ -416,7 +480,7 @@
       const element = document.getElementById('order-card');
       html2canvas(element, { scale: 2 }).then(canvas => {
         const link = document.createElement('a');
-        link.download = `訂單截圖_${Date.now()}.png`;
+        link.download = `SLEEP_SHOP_訂單_${Date.now()}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       });
