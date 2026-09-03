@@ -12,24 +12,27 @@
     .header { text-align: center; margin-bottom: 20px; }
     .header h1 { margin: 10px 0 5px; font-size: 22px; }
     
-    /* 分類標籤 */
     .category-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; }
     .category-btn { background: #e9ecef; border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 14px; }
     .category-btn.active { background: #4a90e2; color: white; }
 
-    /* 商品列表 */
-    .product-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .product-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 15px; margin-bottom: 30px; }
     .product-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
-    .product-img { width: 100%; height: 150px; object-fit: cover; background: #eee; }
+    
+    /* 多圖展示區 */
+    .img-container { position: relative; width: 100%; height: 160px; background: #eee; }
+    .product-img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+    .thumbs-bar { display: flex; gap: 4px; padding: 6px; overflow-x: auto; background: #fff; border-bottom: 1px solid #eee; }
+    .thumb-img { width: 32px; height: 32px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #ddd; }
+    .thumb-img.active { border-color: #4a90e2; border-width: 2px; }
+
     .product-info { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
     .product-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
     .product-price { color: #e63946; font-weight: bold; font-size: 16px; margin-bottom: 8px; }
     
-    /* 選單樣式 */
     .option-select { width: 100%; padding: 6px; margin-bottom: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
     .add-btn { background: #4a90e2; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: auto; }
     
-    /* 結帳明細區 */
     .cart-section { max-width: 500px; margin: 0 auto; }
     .order-card { background: white; padding: 20px; border-radius: 12px; border: 2px dashed #4a90e2; }
     .order-header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
@@ -38,24 +41,24 @@
     .qty-btn { border: 1px solid #ccc; background: #f0f0f0; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; }
     .order-total { font-size: 18px; font-weight: bold; text-align: right; color: #e63946; border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; }
     .screenshot-btn { background: #2ec4b6; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
+
+    /* 大圖彈窗 */
+    .modal { display: none; position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+    .modal img { max-width: 90%; max-height: 80%; border-radius: 8px; }
   </style>
 </head>
 <body>
 
   <div class="header">
     <h1>🛍️ 團務喊單目錄</h1>
-    <p>選擇規格與數量後，點擊最下方按鈕生成圖片，截圖傳給我即可！</p>
+    <p>點擊圖片可放大，選擇規格後生成訂單截圖傳給我！</p>
   </div>
 
-  <!-- 分類篩選按鈕 -->
   <div id="category-bar" class="category-bar"></div>
-
-  <!-- 商品列表 -->
   <div id="product-list" class="product-list">
     <p style="text-align:center; grid-column: 1/-1;">商品載入中...</p>
   </div>
 
-  <!-- 購物清單 -->
   <div class="cart-section">
     <div id="order-card" class="order-card">
       <div class="order-header">
@@ -72,9 +75,14 @@
     <button class="screenshot-btn" onclick="takeScreenshot()">📸 下載訂單截圖（傳給賣家）</button>
   </div>
 
+  <!-- 放大檢視圖片視窗 -->
+  <div id="img-modal" class="modal" onclick="this.style.display='none'">
+    <img id="modal-img" src="">
+  </div>
+
   <script>
     // ⚠️ 請把引號裡替換成你 Google 試算表發布的 CSV 網址 ⚠️
-    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeVbV5Fh_iuHnmEQdeDfD07H_VX0F-_siv4p4hivU_r2bTH8Q9ZA4SHP8jWAe7vcBLZKlQBIn2u27u/pub?output=csv";
+    const SHEET_CSV_URL = "填入你發布的CSV網址";
 
     let allProducts = [];
     let cart = {};
@@ -118,6 +126,16 @@
         const priceNum = Number(item.price);
         const sizes = item.size ? item.size.split('/') : [];
         const colors = item.color ? item.color.split('/') : [];
+        
+        // 拆解多張圖片網址（用逗號隔開）
+        const images = item.image ? item.image.split(',').map(s => s.trim()) : ['https://via.placeholder.com/150'];
+
+        let thumbsHtml = '';
+        if (images.length > 1) {
+          thumbsHtml = `<div class="thumbs-bar">` + 
+            images.map((img, imgIdx) => `<img src="${img}" class="thumb-img ${imgIdx===0?'active':''}" onclick="switchImg(${index}, '${img}', this)">`).join('') + 
+            `</div>`;
+        }
 
         let sizeHtml = sizes.length ? `<select class="option-select" id="size-${index}">` + sizes.map(s => `<option value="${s.trim()}">${s.trim()}</option>`).join('') + `</select>` : '';
         let colorHtml = colors.length ? `<select class="option-select" id="color-${index}">` + colors.map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('') + `</select>` : '';
@@ -125,7 +143,10 @@
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-          <img src="${item.image || 'https://via.placeholder.com/150'}" class="product-img" alt="${item.name}">
+          <div class="img-container">
+            <img src="${images[0]}" class="product-img" id="main-img-${index}" onclick="openModal('${images[0]}')">
+          </div>
+          ${thumbsHtml}
           <div class="product-info">
             <div class="product-title">${item.name}</div>
             <div class="product-price">$${priceNum}</div>
@@ -136,6 +157,21 @@
         `;
         container.appendChild(card);
       });
+    }
+
+    function switchImg(cardIdx, imgUrl, el) {
+      const mainImg = document.getElementById(`main-img-${cardIdx}`);
+      mainImg.src = imgUrl;
+      mainImg.onclick = () => openModal(imgUrl);
+      
+      const thumbs = el.parentElement.querySelectorAll('.thumb-img');
+      thumbs.forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function openModal(imgUrl) {
+      document.getElementById('modal-img').src = imgUrl;
+      document.getElementById('img-modal').style.display = 'flex';
     }
 
     function addToCartWithSpec(index) {
