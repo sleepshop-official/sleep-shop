@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>線上目錄與喊單系統</title>
+  <!-- 引入截圖套件 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f8f9fa; margin: 0; padding: 15px; color: #333; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { margin: 10px 0 5px; font-size: 22px; color: #1a1a1a; }
+    .header p { margin: 0; font-size: 14px; color: #666; }
+    
+    /* 商品列表 */
+    .product-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .product-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
+    .product-img { width: 100%; height: 140px; object-fit: cover; background: #eee; }
+    .product-info { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
+    .product-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+    .product-price { color: #e63946; font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+    .add-btn { background: #4a90e2; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: auto; }
+    
+    /* 購物車/結帳區 */
+    .cart-section { max-width: 500px; margin: 0 auto; }
+    .order-card { background: white; padding: 20px; border-radius: 12px; border: 2px dashed #4a90e2; }
+    .order-header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+    .order-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
+    .qty-controls { display: flex; align-items: center; gap: 8px; }
+    .qty-btn { border: 1px solid #ccc; background: #f0f0f0; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; }
+    .order-total { font-size: 18px; font-weight: bold; text-align: right; color: #e63946; border-top: 1px solid #eee; pt: 10px; margin-top: 15px; padding-top: 10px; }
+    
+    .screenshot-btn { background: #2ec4b6; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🛍️ 賣家名稱 - 商品目錄</h1>
+    <p>選好商品後，點擊最下方按鈕生成圖片，傳給我即可喊單！</p>
+  </div>
+
+  <!-- 商品展示區（可自由增加） -->
+  <div class="product-list">
+    <div class="product-card">
+      <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=300" class="product-img" alt="手工餅乾">
+      <div class="product-info">
+        <div class="product-title">手工餅乾組</div>
+        <div class="product-price">$150</div>
+        <button class="add-btn" onclick="addToCart('手工餅乾組', 150)">+ 加入清單</button>
+      </div>
+    </div>
+
+    <div class="product-card">
+      <img src="https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=300" class="product-img" alt="特調奶茶">
+      <div class="product-info">
+        <div class="product-title">濃郁特調奶茶</div>
+        <div class="product-price">$60</div>
+        <button class="add-btn" onclick="addToCart('濃郁特調奶茶', 60)">+ 加入清單</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 準備被截圖的區域 -->
+  <div class="cart-section">
+    <div id="order-card" class="order-card">
+      <div class="order-header">
+        <h3 style="margin:0;">📝 我的選購清單</h3>
+        <span id="order-time" style="font-size: 12px; color: #888;"></span>
+      </div>
+      
+      <div id="cart-list">
+        <p style="text-align: center; color: #aaa; margin: 20px 0;">還沒有選擇商品喔！</p>
+      </div>
+
+      <div class="order-total">
+        總金額：$<span id="total-price">0</span>
+      </div>
+    </div>
+
+    <button class="screenshot-btn" onclick="takeScreenshot()">📸 下載訂單截圖（傳給賣家）</button>
+  </div>
+
+  <script>
+    let cart = {};
+
+    function addToCart(name, price) {
+      if (cart[name]) {
+        cart[name].qty += 1;
+      } else {
+        cart[name] = { price: price, qty: 1 };
+      }
+      renderCart();
+    }
+
+    function updateQty(name, change) {
+      if (cart[name]) {
+        cart[name].qty += change;
+        if (cart[name].qty <= 0) {
+          delete cart[name];
+        }
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartList = document.getElementById('cart-list');
+      const totalPriceEl = document.getElementById('total-price');
+      const timeEl = document.getElementById('order-time');
+      
+      timeEl.innerText = "下單時間：" + new Date().toLocaleString('zh-TW', { hour12: false });
+      cartList.innerHTML = '';
+      
+      let total = 0;
+      const keys = Object.keys(cart);
+
+      if (keys.length === 0) {
+        cartList.innerHTML = '<p style="text-align: center; color: #aaa; margin: 20px 0;">還沒有選擇商品喔！</p>';
+        totalPriceEl.innerText = '0';
+        return;
+      }
+
+      keys.forEach(name => {
+        const item = cart[name];
+        const itemTotal = item.price * item.qty;
+        total += itemTotal;
+
+        const row = document.createElement('div');
+        row.className = 'order-item';
+        row.innerHTML = `
+          <div>
+            <strong>${name}</strong><br>
+            <span style="color:#888; font-size:12px;">$${item.price} x ${item.qty}</span>
+          </div>
+          <div class="qty-controls">
+            <button class="qty-btn" onclick="updateQty('${name}', -1)">-</button>
+            <span>${item.qty}</span>
+            <button class="qty-btn" onclick="updateQty('${name}', 1)">+</button>
+          </div>
+        `;
+        cartList.appendChild(row);
+      });
+
+      totalPriceEl.innerText = total;
+    }
+
+    function takeScreenshot() {
+      if (Object.keys(cart).length === 0) {
+        alert('請先加入商品再點擊下載截圖喔！');
+        return;
+      }
+
+      const element = document.getElementById('order-card');
+      html2canvas(element).then(canvas => {
+        const link = document.createElement('a');
+        link.download = '我的購物明細.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
