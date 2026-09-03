@@ -336,7 +336,7 @@
         }
 
         let sizeHtml = sizes.length ? `<select class="option-select" id="size-${index}"><option value="">尺寸</option>` + sizes.map(s => `<option value="${s.trim()}">${s.trim()}</option>`).join('') + `</select>` : '';
-        let colorHtml = colors.length ? `<select class="option-select" id="color-${index}"><option value="">顏色/款式</option>` + colors.map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('') + `</select>` : '';
+        let colorHtml = colors.length ? `<select class="option-select" id="color-${index}"><option value="">款式</option>` + colors.map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('') + `</select>` : '';
 
         const noteHtml = item.note ? `<div class="product-note">${item.note}</div>` : '';
         const badgeCount = images.length > 1 ? `<div class="badge-count">1/${images.length}</div>` : '';
