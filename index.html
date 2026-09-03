@@ -495,7 +495,7 @@
       timeEl.innerText = "時間：" + now.getFullYear() + '/' + (now.getMonth()+1).toString().padStart(2,'0') + '/' + now.getDate().toString().padStart(2,'0') + ' ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
 
       cartList.innerHTML = '';
-      let total = 0;
+      let subtotal = 0;
       let totalQty = 0;
       const keys = Object.keys(cart);
 
@@ -506,9 +506,10 @@
         return;
       }
 
+      // 計算商品小計與數量
       keys.forEach(key => {
         const item = cart[key];
-        total += item.price * item.qty;
+        subtotal += item.price * item.qty;
         totalQty += item.qty;
 
         const row = document.createElement('div');
@@ -528,7 +529,28 @@
         cartList.appendChild(row);
       });
 
-      totalPriceEl.innerText = total;
+      // 判斷是否未滿 200 元並加上 12 元手續費
+      let shippingFee = 0;
+      if (subtotal > 0 && subtotal < 200) {
+        shippingFee = 12;
+        const feeRow = document.createElement('div');
+        feeRow.className = 'order-item';
+        feeRow.style.color = '#d90429'; // 提示紅字
+        feeRow.style.borderTop = '1px dashed #eee';
+        feeRow.style.paddingTop = '6px';
+        feeRow.innerHTML = `
+          <div>
+            <strong>包材與手續費</strong>
+            <div style="font-size:10px; color:#999;">未滿 $200 加收</div>
+          </div>
+          <div style="font-weight:600;">NT$12</div>
+        `;
+        cartList.appendChild(feeRow);
+      }
+
+      const finalTotal = subtotal + shippingFee;
+
+      totalPriceEl.innerText = finalTotal;
       cartBadge.innerText = totalQty;
       cartBadge.style.display = 'flex';
     }
