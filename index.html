@@ -429,7 +429,8 @@
       const searchKey = document.getElementById('search-input').value.toLowerCase().trim();
       container.innerHTML = '';
 
-      let filtered = allProducts;
+      // 倒序排列：最新新增的商品排在最上面
+      let filtered = [...allProducts].reverse();
 
       if (currentCategory !== '全部') {
         filtered = filtered.filter(p => getVal(p, ['分類', 'category']) === currentCategory);
@@ -519,7 +520,7 @@
     }
 
     function updateCardPrice(index) {
-      const item = allProducts[index];
+      const item = [...allProducts].reverse()[index];
       const rawPriceStr = getVal(item, ['價格', 'price']) || '0';
       const rawImgStr = getVal(item, ['圖片', 'image', '款式圖片', '顏色圖片']);
       
@@ -571,7 +572,7 @@
     }
 
     function addToCartWithSpec(index) {
-      const item = allProducts[index];
+      const item = [...allProducts].reverse()[index];
       const specSelects = document.querySelectorAll(`.spec-select-${index}`);
       
       let selectedSpecs = [];
