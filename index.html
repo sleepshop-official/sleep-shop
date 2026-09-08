@@ -239,8 +239,35 @@
       return '';
     }
 
+    function fixImgUrl(url) {
+      if (!url) return FALLBACK_IMG;
+      let cleanUrl = url.trim();
+      if (cleanUrl.includes('ibb.co/') && !cleanUrl.includes('i.ibb.co/')) {
+        let code = cleanUrl.split('ibb.co/')[1];
+        return `https://i.ibb.co/${code}/image.jpg`;
+      }
+      return cleanUrl;
+    }
+
     /* -----------------------------------------------------
-       1. 價格解析與算價邏輯
+       解析圖片與對應規格邏輯 (支援 網址/規格)
+    ----------------------------------------------------- */
+    function parseImageField(rawImgStr) {
+      if (!rawImgStr) return [];
+      const parts = String(rawImgStr).split(/[\n,;]/).map(s => s.trim()).filter(Boolean);
+      return parts.map(part => {
+        if (part.includes('/')) {
+          const lastSlash = part.lastIndexOf('/');
+          const url = part.substring(0, lastSlash).trim();
+          const tag = part.substring(lastSlash + 1).trim();
+          return { url: fixImgUrl(url), tag: tag };
+        }
+        return { url: fixImgUrl(part), tag: null };
+      });
+    }
+
+    /* -----------------------------------------------------
+       價格解析與算價邏輯
     ----------------------------------------------------- */
     function parsePriceInfo(rawPriceStr, selectedSpecs = []) {
       if (!rawPriceStr) return { price: 0, isMin: false };
@@ -249,7 +276,6 @@
 
       let specPriceMap = {};
       let pricesList = [];
-      let defaultPrice = 0;
 
       parts.forEach(part => {
         if (part.includes('/')) {
@@ -262,7 +288,6 @@
         } else {
           const priceVal = Number(part);
           if (!isNaN(priceVal)) {
-            defaultPrice = priceVal;
             pricesList.push(priceVal);
           }
         }
@@ -281,24 +306,6 @@
       }
 
       return { price: Number(rawPriceStr) || 0, isMin: false };
-    }
-
-    /* -----------------------------------------------------
-       2. 款式/顏色圖片匹配邏輯
-    ----------------------------------------------------- */
-    function getSpecImageUrl(rawSpecImgStr, selectedSpecs = []) {
-      if (!rawSpecImgStr) return null;
-      const parts = String(rawSpecImgStr).split(/[,;|\n]/).map(s => s.trim()).filter(Boolean);
-      
-      for (let part of parts) {
-        if (part.includes('/')) {
-          const [imgUrl, keyStr] = part.split('/').map(n => n.trim());
-          if (selectedSpecs.includes(keyStr)) {
-            return fixImgUrl(imgUrl);
-          }
-        }
-      }
-      return null;
     }
 
     Papa.parse(SHEET_CSV_URL, {
@@ -362,16 +369,6 @@
       renderProducts();
     }
 
-    function fixImgUrl(url) {
-      if (!url) return FALLBACK_IMG;
-      let cleanUrl = url.trim();
-      if (cleanUrl.includes('ibb.co/') && !cleanUrl.includes('i.ibb.co/')) {
-        let code = cleanUrl.split('ibb.co/')[1];
-        return `https://i.ibb.co/${code}/image.jpg`;
-      }
-      return cleanUrl;
-    }
-
     function parseOptions(val) {
       if (!val) return [];
       return val.split(/[/;,]/).map(s => s.trim()).filter(Boolean);
@@ -406,21 +403,20 @@
         const rawPriceStr = getVal(item, ['價格', 'price']) || '0';
         const noteStr = getVal(item, ['備註', 'note']);
         const chartStr = getVal(item, ['尺寸表', 'chart']);
-        const imgStr = getVal(item, ['圖片', 'image']);
+        const rawImgStr = getVal(item, ['圖片', 'image']);
 
         const colors = parseOptions(getVal(item, ['顏色', 'color']));
         const sizes = parseOptions(getVal(item, ['尺寸', 'size']));
         const styles = parseOptions(getVal(item, ['款式']));
         const models = parseOptions(getVal(item, ['型號']));
 
-        let rawImages = imgStr ? imgStr.split(/[\n,;]/).filter(Boolean) : [];
-        let images = rawImages.map(fixImgUrl);
-        if (images.length === 0) images = [FALLBACK_IMG];
+        let parsedImgs = parseImageField(rawImgStr);
+        if (parsedImgs.length === 0) parsedImgs = [{ url: FALLBACK_IMG, tag: null }];
 
         let thumbsHtml = '';
-        if (images.length > 1) {
+        if (parsedImgs.length > 1) {
           thumbsHtml = `<div class="thumbs-bar">` + 
-            images.map((img, imgIdx) => `<img src="${img}" class="thumb-img ${imgIdx===0?'active':''}" onerror="this.src='${FALLBACK_IMG}'" onclick="switchImg(${index}, '${img}', this)">`).join('') + 
+            parsedImgs.map((imgObj, imgIdx) => `<img src="${imgObj.url}" class="thumb-img ${imgIdx===0?'active':''}" onerror="this.src='${FALLBACK_IMG}'" onclick="switchImg(${index}, '${imgObj.url}', this)">`).join('') + 
             `</div>`;
         }
 
@@ -441,9 +437,8 @@
           chartHtml = `<div class="chart-btn" onclick="openModal('${chartImg}')">📐 查看尺寸表</div>`;
         }
 
-        const badgeCount = images.length > 1 ? `<div class="badge-count">1/${images.length}</div>` : '';
+        const badgeCount = parsedImgs.length > 1 ? `<div class="badge-count">1/${parsedImgs.length}</div>` : '';
 
-        // 初始預設價格：最低價
         const initialPriceInfo = parsePriceInfo(rawPriceStr, []);
         const displayPriceText = initialPriceInfo.isMin ? `NT$${initialPriceInfo.price} 起` : `NT$${initialPriceInfo.price}`;
 
@@ -452,7 +447,7 @@
         card.innerHTML = `
           <div class="img-container" onclick="openModal(document.getElementById('main-img-${index}').src)">
             ${badgeCount}
-            <img src="${images[0]}" class="product-img" id="main-img-${index}" data-default-img="${images[0]}" onerror="this.src='${FALLBACK_IMG}'">
+            <img src="${parsedImgs[0].url}" class="product-img" id="main-img-${index}" data-default-img="${parsedImgs[0].url}" onerror="this.src='${FALLBACK_IMG}'">
           </div>
           ${thumbsHtml}
           <div class="product-info">
@@ -473,11 +468,12 @@
       });
     }
 
-    // 當下拉選單變動時，即時更新金額與圖片
+    // 選單變動：即時更新【價格】與對應【圖片】
     function updateCardPrice(index) {
       const item = allProducts[index];
       const rawPriceStr = getVal(item, ['價格', 'price']) || '0';
-      const rawSpecImgStr = getVal(item, ['款式圖片', '顏色圖片', 'spec_image', 'spec_img']);
+      // 兼顧原本多數欄位命名，優先讀取「圖片」欄
+      const rawImgStr = getVal(item, ['圖片', 'image', '款式圖片', '顏色圖片', 'spec_image']);
       
       const specSelects = document.querySelectorAll(`.spec-select-${index}`);
       let selectedSpecs = [];
@@ -486,21 +482,32 @@
         if (select.value) selectedSpecs.push(select.value);
       });
 
-      // 1. 動態更新價格
+      // 1. 動態更新金額
       const priceInfo = parsePriceInfo(rawPriceStr, selectedSpecs);
       const priceEl = document.getElementById(`card-price-${index}`);
       if (priceEl) {
         priceEl.innerText = priceInfo.isMin ? `NT$${priceInfo.price} 起` : `NT$${priceInfo.price}`;
       }
 
-      // 2. 動態更新圖片 (若找到匹配的圖片就換，找不到就還原為預設圖)
-      const matchedImg = getSpecImageUrl(rawSpecImgStr, selectedSpecs);
+      // 2. 動態匹配選項更換圖片
+      const parsedImgs = parseImageField(rawImgStr);
+      let matchedImg = null;
+
+      for (let imgObj of parsedImgs) {
+        if (imgObj.tag && selectedSpecs.includes(imgObj.tag)) {
+          matchedImg = imgObj.url;
+          break;
+        }
+      }
+
       const mainImg = document.getElementById(`main-img-${index}`);
       if (mainImg) {
         if (matchedImg) {
           mainImg.src = matchedImg;
         } else {
-          mainImg.src = mainImg.getAttribute('data-default-img');
+          // 未匹配則還原預設第一張圖
+          const defaultImg = mainImg.getAttribute('data-default-img');
+          if (defaultImg) mainImg.src = defaultImg;
         }
       }
     }
