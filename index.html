@@ -240,71 +240,50 @@
     }
 
     /* -----------------------------------------------------
-       自動對應「規格名稱」解析價格
-       例如：
-       1. 單純數字: "100" -> 價格 100
-       2. 指定對應: "350/上衣, 450/褲子, 700/套組" -> 自動匹配選單
-       3. 多件優惠: "200/1, 380/2" -> 多件折扣
+       價格解析與算價邏輯
+       若未選擇任何有效規格，會自動計算並顯示最低標價
     ----------------------------------------------------- */
-    function calculatePrice(rawPriceStr, qty, selectedSpecs) {
-      if (!rawPriceStr) return 0;
+    function parsePriceInfo(rawPriceStr, selectedSpecs = []) {
+      if (!rawPriceStr) return { price: 0, isMin: false };
       const str = String(rawPriceStr).trim();
       const parts = str.split(/[,;|\n]/).map(s => s.trim()).filter(Boolean);
 
       let specPriceMap = {};
-      let qtyRules = [];
+      let pricesList = [];
       let defaultPrice = 0;
 
       parts.forEach(part => {
         if (part.includes('/')) {
           const [valStr, keyStr] = part.split('/').map(n => n.trim());
           const priceVal = Number(valStr);
-          
           if (!isNaN(priceVal)) {
-            const qtyNum = Number(keyStr);
-            if (!isNaN(qtyNum)) {
-              qtyRules.push({ qty: qtyNum, price: priceVal });
-            } else {
-              // 規格名稱對應價格 (如 350/上衣)
-              specPriceMap[keyStr] = priceVal;
-            }
+            specPriceMap[keyStr] = priceVal;
+            pricesList.push(priceVal);
           }
         } else {
           const priceVal = Number(part);
           if (!isNaN(priceVal)) {
             defaultPrice = priceVal;
+            pricesList.push(priceVal);
           }
         }
       });
 
-      // 1. 先比對選單中的選項名稱 (選了「上衣」，自動抓取 350/上衣)
+      // 1. 若有選擇規格，精準匹配規格價格
       for (let spec of selectedSpecs) {
-        if (specPriceMap[spec] !== undefined) {
-          return specPriceMap[spec];
+        if (spec && specPriceMap[spec] !== undefined) {
+          return { price: specPriceMap[spec], isMin: false };
         }
       }
 
-      // 2. 比對多件優惠 (如 200/1, 380/2)
-      if (qtyRules.length > 0) {
-        qtyRules.sort((a, b) => b.qty - a.qty);
-        let remQty = qty;
-        let totalAmount = 0;
-        for (let rule of qtyRules) {
-          if (remQty >= rule.qty) {
-            const times = Math.floor(remQty / rule.qty);
-            totalAmount += times * rule.price;
-            remQty %= rule.qty;
-          }
-        }
-        if (remQty > 0) {
-          const baseRule = qtyRules.find(r => r.qty === 1) || qtyRules[qtyRules.length - 1];
-          totalAmount += remQty * (baseRule.price / baseRule.qty);
-        }
-        return Math.round(totalAmount / qty);
+      // 2. 未選擇規格或查無匹配，回傳所有價格中的「最低價」
+      if (pricesList.length > 0) {
+        const minPrice = Math.min(...pricesList);
+        const isMultiple = pricesList.length > 1;
+        return { price: minPrice, isMin: isMultiple };
       }
 
-      // 3. 無特別指定時，回傳預設單價
-      return defaultPrice || Number(rawPriceStr) || 0;
+      return { price: Number(rawPriceStr) || 0, isMin: false };
     }
 
     Papa.parse(SHEET_CSV_URL, {
@@ -430,10 +409,10 @@
             `</div>`;
         }
 
-        let colorHtml = colors.length ? `<select class="option-select spec-select-${index}" data-spec-name="顏色"><option value="">顏色</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('') + `</select>` : '';
-        let sizeHtml = sizes.length ? `<select class="option-select spec-select-${index}" data-spec-name="尺寸"><option value="">尺寸</option>` + sizes.map(s => `<option value="${s}">${s}</option>`).join('') + `</select>` : '';
-        let styleHtml = styles.length ? `<select class="option-select spec-select-${index}" data-spec-name="款式"><option value="">款式</option>` + styles.map(st => `<option value="${st}">${st}</option>`).join('') + `</select>` : '';
-        let modelHtml = models.length ? `<select class="option-select spec-select-${index}" data-spec-name="型號"><option value="">型號</option>` + models.map(m => `<option value="${m}">${m}</option>`).join('') + `</select>` : '';
+        let colorHtml = colors.length ? `<select class="option-select spec-select-${index}" data-spec-name="顏色" onchange="updateCardPrice(${index})"><option value="">顏色</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('') + `</select>` : '';
+        let sizeHtml = sizes.length ? `<select class="option-select spec-select-${index}" data-spec-name="尺寸" onchange="updateCardPrice(${index})"><option value="">尺寸</option>` + sizes.map(s => `<option value="${s}">${s}</option>`).join('') + `</select>` : '';
+        let styleHtml = styles.length ? `<select class="option-select spec-select-${index}" data-spec-name="款式" onchange="updateCardPrice(${index})"><option value="">款式</option>` + styles.map(st => `<option value="${st}">${st}</option>`).join('') + `</select>` : '';
+        let modelHtml = models.length ? `<select class="option-select spec-select-${index}" data-spec-name="型號" onchange="updateCardPrice(${index})"><option value="">型號</option>` + models.map(m => `<option value="${m}">${m}</option>`).join('') + `</select>` : '';
 
         let noteHtml = '';
         if (noteStr) {
@@ -449,6 +428,10 @@
 
         const badgeCount = images.length > 1 ? `<div class="badge-count">1/${images.length}</div>` : '';
 
+        // 初始預設價格：計算最低價
+        const initialPriceInfo = parsePriceInfo(rawPriceStr, []);
+        const displayPriceText = initialPriceInfo.isMin ? `NT$${initialPriceInfo.price} 起` : `NT$${initialPriceInfo.price}`;
+
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
@@ -461,7 +444,7 @@
             <div class="product-title">${nameStr}</div>
             ${noteHtml}
             ${chartHtml}
-            <div class="product-price">NT$${rawPriceStr}</div>
+            <div class="product-price" id="card-price-${index}">${displayPriceText}</div>
             <div class="select-group">
               ${colorHtml}
               ${sizeHtml}
@@ -473,6 +456,25 @@
         `;
         container.appendChild(card);
       });
+    }
+
+    // 當下拉選單變動時，即時更新卡片顯示價格
+    function updateCardPrice(index) {
+      const item = allProducts[index];
+      const rawPriceStr = getVal(item, ['價格', 'price']) || '0';
+      const specSelects = document.querySelectorAll(`.spec-select-${index}`);
+      let selectedSpecs = [];
+
+      specSelects.forEach(select => {
+        if (select.value) selectedSpecs.push(select.value);
+      });
+
+      const priceInfo = parsePriceInfo(rawPriceStr, selectedSpecs);
+      const priceEl = document.getElementById(`card-price-${index}`);
+
+      if (priceEl) {
+        priceEl.innerText = priceInfo.isMin ? `NT$${priceInfo.price} 起` : `NT$${priceInfo.price}`;
+      }
     }
 
     function switchImg(cardIdx, imgUrl, el) {
@@ -508,7 +510,7 @@
       let rawPriceStr = getVal(item, ['價格', 'price']) || '0';
       let itemKey = specText ? `${nameText} (${specText})` : nameText;
 
-      let unitPrice = calculatePrice(rawPriceStr, 1, selectedSpecs);
+      let priceInfo = parsePriceInfo(rawPriceStr, selectedSpecs);
 
       if (cart[itemKey]) {
         cart[itemKey].qty += 1;
@@ -557,9 +559,8 @@
         const item = cart[key];
         totalQty += item.qty;
 
-        // 計算單價 (自動比對選擇的選項)
-        const unitPrice = calculatePrice(item.rawPriceStr, item.qty, item.selectedSpecs || []);
-        const itemSubtotal = unitPrice * item.qty;
+        const priceInfo = parsePriceInfo(item.rawPriceStr, item.selectedSpecs || []);
+        const itemSubtotal = priceInfo.price * item.qty;
         subtotal += itemSubtotal;
 
         const row = document.createElement('div');
@@ -579,7 +580,6 @@
         cartList.appendChild(row);
       });
 
-      // 檢查滿額 $200 門檻加收 12 元包材手續費
       let shippingFee = 0;
       if (subtotal > 0 && subtotal < 200) {
         shippingFee = 12;
