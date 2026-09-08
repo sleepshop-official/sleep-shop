@@ -19,7 +19,7 @@
       --border-color: #eee;
     }
 
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background-color: var(--bg); margin: 0; padding: 0; color: var(--text-main); line-height: 1.4; }
 
     /* Top Navigation Bar */
@@ -33,55 +33,33 @@
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
     .modal-overlay.active { opacity: 1; visibility: visible; }
 
-    /* Left Drawer / Sidebar Navigation */
+    /* Left Drawer Navigation */
     .drawer { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #ffffff; z-index: 1001; transition: left 0.3s ease; display: flex; flex-direction: column; padding: 20px; box-shadow: 5px 0 25px rgba(0,0,0,0.1); }
     .drawer.active { left: 0; }
-    
     .drawer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; }
     .drawer-title { font-size: 16px; font-weight: 700; letter-spacing: 1px; }
 
-    /* Search Box in Sidebar */
+    /* Search Box */
     .search-box { display: flex; align-items: center; background: #f2f2f2; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
     .search-box input { border: none; background: transparent; width: 100%; outline: none; font-size: 13px; margin-left: 8px; color: var(--text-main); }
 
     /* Guide Menu Link */
-    .guide-btn { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px 12px; border-radius: 6px; border: 1px solid #eee; font-size: 13px; font-weight: 600; color: #333; cursor: pointer; margin-bottom: 15px; transition: background 0.2s; }
-    .guide-btn:hover { background: #f0f0f0; }
+    .guide-btn { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px 12px; border-radius: 6px; border: 1px solid #eee; font-size: 13px; font-weight: 600; color: #333; cursor: pointer; margin-bottom: 15px; }
 
     .category-section-title { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-left: 4px; }
     .category-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
     .category-item { padding: 12px 10px; font-size: 14px; font-weight: 500; border-bottom: 1px solid #f8f8f8; cursor: pointer; display: flex; justify-content: space-between; color: #444; }
     .category-item:hover, .category-item.active { color: var(--primary); font-weight: 700; background: #fafafa; }
 
-    /* Main Container & Product Grid */
+    /* Main Product Grid */
     .container { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
     .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px 12px; }
-    @media (min-width: 768px) {
-      .product-grid { grid-template-columns: repeat(3, 1fr); gap: 25px 20px; }
-    }
+    @media (min-width: 768px) { .product-grid { grid-template-columns: repeat(3, 1fr); gap: 25px 20px; } }
 
     /* Product Card */
     .product-card { background: #ffffff; display: flex; flex-direction: column; position: relative; }
-    .img-container { 
-      position: relative; 
-      width: 100%; 
-      aspect-ratio: 1 / 1; /* 已調整為 1:1 正方形比例 */
-      background: #f8f8f8;
-      overflow: hidden; 
-      cursor: pointer; 
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-radius: 4px;
-    }
-    .product-img { 
-      width: 100%; 
-      height: 100%; 
-      object-fit: cover; /* 自動適應呈現正方形切割 */
-      transition: transform 0.3s ease; 
-    }
-    .product-card:hover .product-img { transform: scale(1.02); }
-    
+    .img-container { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #f8f8f8; overflow: hidden; cursor: pointer; display: flex; justify-content: center; align-items: center; border-radius: 4px; }
+    .product-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
     .badge-count { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; z-index: 2; }
 
     /* Thumbnails */
@@ -93,14 +71,9 @@
     /* Info Area */
     .product-info { padding: 8px 2px 0; display: flex; flex-direction: column; flex-grow: 1; }
     .product-title { font-size: 13px; color: #333; margin-bottom: 4px; line-height: 1.35; font-weight: 600; }
-
     .product-note { font-size: 11px; color: #777; margin-bottom: 6px; line-height: 1.4; }
-    .product-note div { margin-bottom: 2px; }
-
     .chart-btn { font-size: 11px; color: #555; background: #f0f0f0; border: 1px solid #ddd; padding: 3px 6px; border-radius: 3px; cursor: pointer; display: inline-block; margin-bottom: 6px; width: fit-content; }
-    .chart-btn:hover { background: #e5e5e5; color: #000; }
-
-    .product-price { font-weight: 700; font-size: 14px; color: #444; margin-bottom: 8px; }
+    .product-price { font-weight: 700; font-size: 13px; color: #d90429; margin-bottom: 8px; }
 
     /* Selects */
     .select-group { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
@@ -113,30 +86,20 @@
     /* Generic Popup Modal */
     .popup-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 440px; max-height: 85vh; background: #ffffff; z-index: 1001; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
     .popup-modal.active { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
-    
     .popup-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
     .popup-modal-title { font-size: 16px; font-weight: 700; }
     .popup-modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; font-size: 13px; line-height: 1.6; color: #444; }
-
-    .guide-box h4 { margin: 15px 0 6px 0; font-size: 14px; color: #000; }
-    .guide-box h4:first-child { margin-top: 0; }
-    .guide-box ol, .guide-box ul { padding-left: 18px; margin: 0 0 10px 0; }
-    .guide-box li { margin-bottom: 6px; }
 
     /* Order Receipt Style */
     .order-card { background: #ffffff; padding: 18px; border: 1px solid #e0e0e0; border-radius: 4px; }
     .order-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
     .order-header h4 { margin: 0 0 6px; font-size: 15px; color: #000; }
-    .order-header p { margin: 0; font-size: 12px; color: #333333; font-weight: 600; }
+    .order-header p { margin: 0; font-size: 12px; color: #333; font-weight: 600; }
 
-    /* 客戶資料輸入區塊 */
     .customer-info-section { border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 12px; }
     .customer-input-group { margin-bottom: 8px; display: flex; align-items: center; }
     .customer-input-group label { width: 90px; font-size: 12px; font-weight: 600; color: #333; }
-    .customer-input-group input { flex: 1; padding: 6px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; outline: none; line-height: normal; }
-    .customer-input-group input:focus { border-color: #333; }
-
-    /* 截圖時顯示的純文字樣式 */
+    .customer-input-group input { flex: 1; padding: 6px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
     .cust-text-val { flex: 1; font-size: 12px; font-weight: 600; color: #111; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; display: none; }
 
     .order-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px; }
@@ -173,20 +136,16 @@
       <button class="icon-btn" onclick="toggleDrawer(false)">✕</button>
     </div>
 
-    <!-- Search Box -->
     <div class="search-box">
       🔍 <input type="text" id="search-input" placeholder="搜尋商品關鍵字..." oninput="handleSearch()">
     </div>
 
-    <!-- Guide Link Button -->
     <div class="guide-btn" onclick="toggleGuideModal(true)">
       📖 使用指南與喊單須知 <span>›</span>
     </div>
 
     <div class="category-section-title">商品分類</div>
-    <ul id="category-list" class="category-list">
-      <!-- Categories rendered by JS -->
-    </ul>
+    <ul id="category-list" class="category-list"></ul>
   </div>
 
   <!-- Guide Modal -->
@@ -205,15 +164,6 @@
           <li>點擊下方「📸 生成訂單明細傳給賣家」按鈕下載清單截圖。</li>
           <li>將截圖私訊傳給賣家即可完成喊單！</li>
         </ol>
-
-        <h4>⚠️ 喊單須知與注意事項</h4>
-        <ul>
-          <li>下單未滿200元須收取包材與手續費12元</li>
-          <li>下單前請務必確認訂單內容，喊單後無法隨意修改。</li>
-          <li>預購商品到貨時間約1-2個月，不接急單。</li>
-          <li>商品因拍攝光線及螢幕顯示不同，可能有些微色差。</li>
-          <li>若商品有問題，請24小時內帶開箱影片告知，缺一不受理。</li>
-        </ul>
       </div>
     </div>
   </div>
@@ -231,7 +181,6 @@
           <p id="order-time">----/--/-- --:--</p>
         </div>
 
-        <!-- 客戶寄件資料填寫區 -->
         <div class="customer-info-section">
           <div class="customer-input-group">
             <label for="cust-name">姓名：</label>
@@ -288,6 +237,74 @@
         }
       }
       return '';
+    }
+
+    /* -----------------------------------------------------
+       自動對應「規格名稱」解析價格
+       例如：
+       1. 單純數字: "100" -> 價格 100
+       2. 指定對應: "350/上衣, 450/褲子, 700/套組" -> 自動匹配選單
+       3. 多件優惠: "200/1, 380/2" -> 多件折扣
+    ----------------------------------------------------- */
+    function calculatePrice(rawPriceStr, qty, selectedSpecs) {
+      if (!rawPriceStr) return 0;
+      const str = String(rawPriceStr).trim();
+      const parts = str.split(/[,;|\n]/).map(s => s.trim()).filter(Boolean);
+
+      let specPriceMap = {};
+      let qtyRules = [];
+      let defaultPrice = 0;
+
+      parts.forEach(part => {
+        if (part.includes('/')) {
+          const [valStr, keyStr] = part.split('/').map(n => n.trim());
+          const priceVal = Number(valStr);
+          
+          if (!isNaN(priceVal)) {
+            const qtyNum = Number(keyStr);
+            if (!isNaN(qtyNum)) {
+              qtyRules.push({ qty: qtyNum, price: priceVal });
+            } else {
+              // 規格名稱對應價格 (如 350/上衣)
+              specPriceMap[keyStr] = priceVal;
+            }
+          }
+        } else {
+          const priceVal = Number(part);
+          if (!isNaN(priceVal)) {
+            defaultPrice = priceVal;
+          }
+        }
+      });
+
+      // 1. 先比對選單中的選項名稱 (選了「上衣」，自動抓取 350/上衣)
+      for (let spec of selectedSpecs) {
+        if (specPriceMap[spec] !== undefined) {
+          return specPriceMap[spec];
+        }
+      }
+
+      // 2. 比對多件優惠 (如 200/1, 380/2)
+      if (qtyRules.length > 0) {
+        qtyRules.sort((a, b) => b.qty - a.qty);
+        let remQty = qty;
+        let totalAmount = 0;
+        for (let rule of qtyRules) {
+          if (remQty >= rule.qty) {
+            const times = Math.floor(remQty / rule.qty);
+            totalAmount += times * rule.price;
+            remQty %= rule.qty;
+          }
+        }
+        if (remQty > 0) {
+          const baseRule = qtyRules.find(r => r.qty === 1) || qtyRules[qtyRules.length - 1];
+          totalAmount += remQty * (baseRule.price / baseRule.qty);
+        }
+        return Math.round(totalAmount / qty);
+      }
+
+      // 3. 無特別指定時，回傳預設單價
+      return defaultPrice || Number(rawPriceStr) || 0;
     }
 
     Papa.parse(SHEET_CSV_URL, {
@@ -392,15 +409,15 @@
 
       filtered.forEach((item, index) => {
         const nameStr = getVal(item, ['商品名稱', 'name']) || '商品';
-        const priceNum = Number(getVal(item, ['價格', 'price'])) || 0;
+        const rawPriceStr = getVal(item, ['價格', 'price']) || '0';
         const noteStr = getVal(item, ['備註', 'note']);
         const chartStr = getVal(item, ['尺寸表', 'chart']);
         const imgStr = getVal(item, ['圖片', 'image']);
 
         const colors = parseOptions(getVal(item, ['顏色', 'color']));
         const sizes = parseOptions(getVal(item, ['尺寸', 'size']));
-        const styles = parseOptions(parseOptions(getVal(item, ['款式']))[0] ? getVal(item, ['款式']) : '');
-        const models = parseOptions(parseOptions(getVal(item, ['型號']))[0] ? getVal(item, ['型號']) : '');
+        const styles = parseOptions(getVal(item, ['款式']));
+        const models = parseOptions(getVal(item, ['型號']));
 
         let rawImages = imgStr ? imgStr.split(/[\n,;]/).filter(Boolean) : [];
         let images = rawImages.map(fixImgUrl);
@@ -444,7 +461,7 @@
             <div class="product-title">${nameStr}</div>
             ${noteHtml}
             ${chartHtml}
-            <div class="product-price">NT$${priceNum}</div>
+            <div class="product-price">NT$${rawPriceStr}</div>
             <div class="select-group">
               ${colorHtml}
               ${sizeHtml}
@@ -488,13 +505,21 @@
 
       let specText = selectedSpecs.join(' / ');
       let nameText = getVal(item, ['商品名稱', 'name']) || '商品';
-      let priceNum = Number(getVal(item, ['價格', 'price'])) || 0;
+      let rawPriceStr = getVal(item, ['價格', 'price']) || '0';
       let itemKey = specText ? `${nameText} (${specText})` : nameText;
+
+      let unitPrice = calculatePrice(rawPriceStr, 1, selectedSpecs);
 
       if (cart[itemKey]) {
         cart[itemKey].qty += 1;
       } else {
-        cart[itemKey] = { price: priceNum, qty: 1, name: nameText, spec: specText };
+        cart[itemKey] = { 
+          rawPriceStr: rawPriceStr, 
+          qty: 1, 
+          name: nameText, 
+          spec: specText,
+          selectedSpecs: selectedSpecs
+        };
       }
       renderCart();
     }
@@ -530,8 +555,12 @@
 
       keys.forEach(key => {
         const item = cart[key];
-        subtotal += item.price * item.qty;
         totalQty += item.qty;
+
+        // 計算單價 (自動比對選擇的選項)
+        const unitPrice = calculatePrice(item.rawPriceStr, item.qty, item.selectedSpecs || []);
+        const itemSubtotal = unitPrice * item.qty;
+        subtotal += itemSubtotal;
 
         const row = document.createElement('div');
         row.className = 'order-item';
@@ -539,7 +568,7 @@
           <div>
             <strong>${item.name}</strong>
             ${item.spec ? `<div style="font-size:11px; color:#666;">${item.spec}</div>` : ''}
-            <div style="color:#888; font-size:11px;">NT$${item.price} × ${item.qty}</div>
+            <div style="color:#888; font-size:11px;">NT$${itemSubtotal} (${item.qty}件小計)</div>
           </div>
           <div class="qty-controls">
             <button class="qty-btn" onclick="updateQty('${key}', -1)">-</button>
@@ -550,6 +579,7 @@
         cartList.appendChild(row);
       });
 
+      // 檢查滿額 $200 門檻加收 12 元包材手續費
       let shippingFee = 0;
       if (subtotal > 0 && subtotal < 200) {
         shippingFee = 12;
