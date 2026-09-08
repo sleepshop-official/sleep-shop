@@ -239,45 +239,74 @@
       return '';
     }
 
-    function fixImgUrl(url) {
-      if (!url) return FALLBACK_IMG;
-      let cleanUrl = url.trim();
-      if (cleanUrl.includes('ibb.co/') && !cleanUrl.includes('i.ibb.co/')) {
-        let code = cleanUrl.split('ibb.co/')[1];
-        return `https://i.ibb.co/${code}/image.jpg`;
+    /* -----------------------------------------------------
+       全新智慧解析網址與規格標籤邏輯
+       精準識別副檔名（.jpg/.png等），徹底解決圖片破圖問題！
+    ----------------------------------------------------- */
+    function parseSingleImgToken(token) {
+      if (!token) return null;
+      let str = token.trim();
+      if (!str) return null;
+
+      let rawUrl = str;
+      let tag = null;
+
+      if (str.toLowerCase().startsWith('http')) {
+        const extMatch = str.match(/\.(jpg|jpeg|png|webp|gif)/i);
+        if (extMatch) {
+          const extEndIdx = extMatch.index + extMatch[0].length;
+          rawUrl = str.substring(0, extEndIdx);
+          let remainder = str.substring(extEndIdx).trim();
+          if (remainder.startsWith('-') || remainder.startsWith('/')) {
+            tag = remainder.substring(1).trim();
+          } else if (remainder) {
+            tag = remainder.trim();
+          }
+        } else {
+          const firstSlashAfterProtocol = str.indexOf('/', 8);
+          let splitIdx = -1;
+          const lastDash = str.lastIndexOf('-');
+          const lastSlash = str.lastIndexOf('/');
+
+          if (lastDash > 8) {
+            splitIdx = lastDash;
+          } else if (lastSlash > firstSlashAfterProtocol) {
+            splitIdx = lastSlash;
+          }
+
+          if (splitIdx !== -1) {
+            rawUrl = str.substring(0, splitIdx).trim();
+            tag = str.substring(splitIdx + 1).trim();
+          }
+        }
       }
-      return cleanUrl;
+
+      let cleanUrl = rawUrl;
+      if (cleanUrl.includes('ibb.co/') && !cleanUrl.includes('i.ibb.co/')) {
+        let code = cleanUrl.split('ibb.co/')[1].split('?')[0].split('#')[0];
+        cleanUrl = `https://i.ibb.co/${code}/image.jpg`;
+      }
+
+      return { url: cleanUrl || FALLBACK_IMG, tag: tag };
     }
 
-    /* -----------------------------------------------------
-       解析圖片與對應規格邏輯（支援連字號 - 分隔規格標籤）
-       支援格式範例：
-       1. https://i.ibb.co/xxx/image.jpg-黑
-       2. https://i.ibb.co/xxx/image.jpg/黑
-       3. https://i.ibb.co/xxx/image.jpg
-    ----------------------------------------------------- */
     function parseImageField(rawImgStr) {
       if (!rawImgStr) return [];
       const parts = String(rawImgStr).split(/[\n,;]/).map(s => s.trim()).filter(Boolean);
-      return parts.map(part => {
-        let url = part;
-        let tag = null;
-
-        // 優先支援 - (連字號) 格式
-        if (part.includes('-')) {
-          const lastDash = part.lastIndexOf('-');
-          url = part.substring(0, lastDash).trim();
-          tag = part.substring(lastDash + 1).trim();
-        } 
-        // 兼容相容 / (斜線) 格式
-        else if (part.includes('/') && !part.startsWith('http')) {
-          const lastSlash = part.lastIndexOf('/');
-          url = part.substring(0, lastSlash).trim();
-          tag = part.substring(lastSlash + 1).trim();
-        }
-
-        return { url: fixImgUrl(url), tag: tag };
+      let results = [];
+      
+      parts.forEach(p => {
+        const parsed = parseSingleImgToken(p);
+        if (parsed) results.push(parsed);
       });
+
+      return results;
+    }
+
+    function fixImgUrl(url) {
+      if (!url) return FALLBACK_IMG;
+      const res = parseSingleImgToken(url);
+      return res ? res.url : FALLBACK_IMG;
     }
 
     /* -----------------------------------------------------
@@ -501,14 +530,12 @@
         if (select.value) selectedSpecs.push(select.value);
       });
 
-      // 1. 動態更新金額
       const priceInfo = parsePriceInfo(rawPriceStr, selectedSpecs);
       const priceEl = document.getElementById(`card-price-${index}`);
       if (priceEl) {
         priceEl.innerText = priceInfo.isMin ? `NT$${priceInfo.price} 起` : `NT$${priceInfo.price}`;
       }
 
-      // 2. 動態匹配選項更換圖片
       const parsedImgs = parseImageField(rawImgStr);
       let matchedImg = null;
 
