@@ -240,8 +240,7 @@
     }
 
     /* -----------------------------------------------------
-       價格解析與算價邏輯
-       若未選擇任何有效規格，會自動計算並顯示最低標價
+       1. 價格解析與算價邏輯
     ----------------------------------------------------- */
     function parsePriceInfo(rawPriceStr, selectedSpecs = []) {
       if (!rawPriceStr) return { price: 0, isMin: false };
@@ -269,14 +268,12 @@
         }
       });
 
-      // 1. 若有選擇規格，精準匹配規格價格
       for (let spec of selectedSpecs) {
         if (spec && specPriceMap[spec] !== undefined) {
           return { price: specPriceMap[spec], isMin: false };
         }
       }
 
-      // 2. 未選擇規格或查無匹配，回傳所有價格中的「最低價」
       if (pricesList.length > 0) {
         const minPrice = Math.min(...pricesList);
         const isMultiple = pricesList.length > 1;
@@ -284,6 +281,24 @@
       }
 
       return { price: Number(rawPriceStr) || 0, isMin: false };
+    }
+
+    /* -----------------------------------------------------
+       2. 款式/顏色圖片匹配邏輯
+    ----------------------------------------------------- */
+    function getSpecImageUrl(rawSpecImgStr, selectedSpecs = []) {
+      if (!rawSpecImgStr) return null;
+      const parts = String(rawSpecImgStr).split(/[,;|\n]/).map(s => s.trim()).filter(Boolean);
+      
+      for (let part of parts) {
+        if (part.includes('/')) {
+          const [imgUrl, keyStr] = part.split('/').map(n => n.trim());
+          if (selectedSpecs.includes(keyStr)) {
+            return fixImgUrl(imgUrl);
+          }
+        }
+      }
+      return null;
     }
 
     Papa.parse(SHEET_CSV_URL, {
@@ -428,16 +443,16 @@
 
         const badgeCount = images.length > 1 ? `<div class="badge-count">1/${images.length}</div>` : '';
 
-        // 初始預設價格：計算最低價
+        // 初始預設價格：最低價
         const initialPriceInfo = parsePriceInfo(rawPriceStr, []);
         const displayPriceText = initialPriceInfo.isMin ? `NT$${initialPriceInfo.price} 起` : `NT$${initialPriceInfo.price}`;
 
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-          <div class="img-container" onclick="openModal('${images[0]}')">
+          <div class="img-container" onclick="openModal(document.getElementById('main-img-${index}').src)">
             ${badgeCount}
-            <img src="${images[0]}" class="product-img" id="main-img-${index}" onerror="this.src='${FALLBACK_IMG}'">
+            <img src="${images[0]}" class="product-img" id="main-img-${index}" data-default-img="${images[0]}" onerror="this.src='${FALLBACK_IMG}'">
           </div>
           ${thumbsHtml}
           <div class="product-info">
@@ -458,10 +473,12 @@
       });
     }
 
-    // 當下拉選單變動時，即時更新卡片顯示價格
+    // 當下拉選單變動時，即時更新金額與圖片
     function updateCardPrice(index) {
       const item = allProducts[index];
       const rawPriceStr = getVal(item, ['價格', 'price']) || '0';
+      const rawSpecImgStr = getVal(item, ['款式圖片', '顏色圖片', 'spec_image', 'spec_img']);
+      
       const specSelects = document.querySelectorAll(`.spec-select-${index}`);
       let selectedSpecs = [];
 
@@ -469,11 +486,22 @@
         if (select.value) selectedSpecs.push(select.value);
       });
 
+      // 1. 動態更新價格
       const priceInfo = parsePriceInfo(rawPriceStr, selectedSpecs);
       const priceEl = document.getElementById(`card-price-${index}`);
-
       if (priceEl) {
         priceEl.innerText = priceInfo.isMin ? `NT$${priceInfo.price} 起` : `NT$${priceInfo.price}`;
+      }
+
+      // 2. 動態更新圖片 (若找到匹配的圖片就換，找不到就還原為預設圖)
+      const matchedImg = getSpecImageUrl(rawSpecImgStr, selectedSpecs);
+      const mainImg = document.getElementById(`main-img-${index}`);
+      if (mainImg) {
+        if (matchedImg) {
+          mainImg.src = matchedImg;
+        } else {
+          mainImg.src = mainImg.getAttribute('data-default-img');
+        }
       }
     }
 
@@ -509,8 +537,6 @@
       let nameText = getVal(item, ['商品名稱', 'name']) || '商品';
       let rawPriceStr = getVal(item, ['價格', 'price']) || '0';
       let itemKey = specText ? `${nameText} (${specText})` : nameText;
-
-      let priceInfo = parsePriceInfo(rawPriceStr, selectedSpecs);
 
       if (cart[itemKey]) {
         cart[itemKey].qty += 1;
